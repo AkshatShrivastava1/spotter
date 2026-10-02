@@ -43,7 +43,7 @@ cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env          # add SPOTTER_ANTHROPIC_API_KEY for real AI; leave blank for offline mode
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Open http://localhost:8000/docs for the interactive API. `pytest` runs the test suite.
