@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+backend/.env
+backend/*.db
+backend/uploads/
+
+# Node / Expo (more in mobile/.gitignore)
+node_modules/
+mobile/dist/
+mobile/.expo/
+
+# OS
+.DS_Store
+
+# delivery archive
+*.tgz
+
+# Personal / private: never commit
+reflections/
+private/
+*.private.md

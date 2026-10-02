@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Spotter",
+    "slug": "spotter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akshat.spotter",
+      "infoPlist": {
+        "NSMotionUsageDescription": "Spotter counts your steps so your coach can keep you on target."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0E0F0C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.akshat.spotter"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Spotter uses your photos to estimate meals and track progress.",
+          "cameraPermission": "Spotter uses the camera to snap meals and progress photos."
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Spotter counts your steps so your coach can keep you on target."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "scheme": "spotter",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8000"
+    }
+  }
+}
