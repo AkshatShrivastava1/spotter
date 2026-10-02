@@ -18,7 +18,15 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] All-ages coaching: kid / teen / adult / senior bands with different targets, nudges, plans and guardrails
 - [x] Offline mock mode, 23 backend tests, typed mobile app
 
-## Next (weeks 2-4)
+## Week 2: from my own first test run
+- [ ] Add an Anthropic API key and re-test; offline mode can't size up dishes outside the built-in table
+      (e.g. "mutton curry with boneless pieces and kidney") and chat only answers 3 canned questions
+- [ ] Grow the offline food table (mutton/goat curry, keema, organ meats, more home dishes) as a fallback
+- [ ] "Rebuild plan" gives no feedback and returns the same plan when settings haven't changed;
+      show a confirmation and add variety (or rename it to make clear it uses current settings)
+- [ ] Use it daily on my phone and log every annoyance here
+
+## Next (weeks 3+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me
 - [ ] Real auth (Supabase Auth or Clerk) instead of `X-User-Id`; Postgres instead of SQLite
 - [ ] Deploy backend (Fly.io / Railway) so nudges fire without my laptop on
