@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from ..coach.context import local_today
-from ..coach.training import create_plan, progression, session_feedback
+from ..coach.training import create_plan, progression, rebuild_plan, session_feedback
 from ..data.exercises import EXERCISES
 from ..db import get_session
 from ..deps import current_user
@@ -33,7 +33,7 @@ def plan(user: User = Depends(current_user), session: Session = Depends(get_sess
 
 @router.post("/workouts/plan/generate")
 def regenerate(user: User = Depends(current_user), session: Session = Depends(get_session)):
-    return create_plan(session, user)
+    return rebuild_plan(session, user)
 
 
 @router.post("/workouts/sessions")

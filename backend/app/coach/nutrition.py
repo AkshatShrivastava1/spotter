@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..data.foods import FOODS, NUMBER_WORDS
+from ..data.foods import FOODS, GENERIC, NUMBER_WORDS, SIZE_WORDS
 from ..llm import get_llm
 
 ITEM_SCHEMA = {
@@ -52,17 +52,18 @@ of error: account for them and mention them in the item name if assumed (e.g. 'd
 If the image does not show food, return an empty items list and ask what they ate."""
 
 
-def _find_food(chunk: str) -> tuple[str, Any] | None:
-    best: tuple[int, str] | None = None
+def _find_food(chunk: str) -> tuple[str, Any, int] | None:
+    """Longest matching food term wins. Returns (name, data, position of the match in chunk)."""
+    best: tuple[int, str, int] | None = None
     for name, (aliases, *_rest) in FOODS.items():
         for term in [name, *aliases]:
-            if re.search(rf"\b{re.escape(term)}\b", chunk):
-                if best is None or len(term) > best[0]:
-                    best = (len(term), name)
-    return (best[1], FOODS[best[1]]) if best else None
+            m = re.search(rf"\b{re.escape(term)}\b", chunk)
+            if m and (best is None or len(term) > best[0]):
+                best = (len(term), name, m.start())
+    return (best[1], FOODS[best[1]], best[2]) if best else None
 
 
-def _quantity(chunk: str) -> tuple[float, float | None]:
+def _quantity(chunk: str, food_pos: int | None = None) -> tuple[float, float | None]:
     """Returns (servings multiplier, grams if specified)."""
     g = re.search(r"(\d+(?:\.\d+)?)\s*(g|gm|grams?)\b", chunk)
     if g:
@@ -71,26 +72,61 @@ def _quantity(chunk: str) -> tuple[float, float | None]:
     if n:
         return float(n.group(1)), None
     first = chunk.strip().split(" ")[0] if chunk.strip() else ""
-    return float(NUMBER_WORDS.get(first, 1)), None
+    mult = float(NUMBER_WORDS.get(first, 1))
+    # Size words only count when they describe the dish ("small bowl of keema"),
+    # not something after it ("mutton curry with small pieces").
+    head = chunk if food_pos is None else chunk[:food_pos]
+    words = set(re.findall(r"[a-z]+", head))
+    for w, f in SIZE_WORDS.items():
+        if w in words:
+            mult *= f
+            break
+    return mult, None
+
+
+CURRY_UPGRADE = {"chicken breast": "chicken curry", "fish": "fish curry", "egg": "egg curry", "paneer": "paneer curry"}
+
+_COUNT_NOUNS = {"piece", "slice", "cup", "bowl", "plate", "glass", "bar", "scoop", "can", "burger", "sandwich",
+                "burrito", "wrap", "serving", "pack", "bagel"}
 
 
 def fmt_qty(mult: float, serving: str) -> str:
     """'3', '1 medium' -> '3 medium'; '1.5', '150 g cooked' -> '1.5 x 150 g cooked'."""
     if serving.startswith("1 "):
-        return f"{mult:g} {serving[2:]}"
+        rest = serving[2:]
+        first, _, tail = rest.partition(" ")
+        if mult > 1 and first in _COUNT_NOUNS:
+            rest = f"{first}s" + (f" {tail}" if tail else "")
+        return f"{mult:g} {rest}"
     return serving if mult == 1 else f"{mult:g} x {serving}"
 
 
 def heuristic_parse(text: str) -> dict[str, Any]:
     parts = [p.strip() for p in re.split(r",|\band\b|\bwith\b|\+|&|\n", text.lower()) if p.strip()]
-    items, unknown = [], []
+    items, unknown, guessed = [], [], []
     for chunk in parts:
         found = _find_food(chunk)
         if not found:
-            unknown.append(chunk)
+            guess = _generic(chunk)
+            if guess:
+                guessed.append(chunk)
+                label, serving, kcal, p, c, f, fib = guess
+                mult, _g = _quantity(chunk)
+                items.append({
+                    "name": label, "quantity": fmt_qty(mult, serving),
+                    "kcal": round(kcal * mult), "protein_g": round(p * mult, 1),
+                    "carbs_g": round(c * mult, 1), "fat_g": round(f * mult, 1), "fiber_g": round(fib * mult, 1),
+                    "confidence": "low",
+                })
+            else:
+                unknown.append(chunk)
             continue
-        name, (_aliases, serving, grams, kcal, p, c, f, fib) = found
-        mult, g = _quantity(chunk)
+        name, data, pos = found
+        if name in CURRY_UPGRADE and re.search(r"\b(curry|gravy|masala|korma|salan)\b", chunk):
+            name = CURRY_UPGRADE[name]  # "chicken chettinad gravy" is a curry, not grilled breast
+            data = FOODS[name]
+        (_aliases, serving, grams, kcal, p, c, f, fib) = data
+        mult, g = _quantity(chunk, pos)
         if g:
             mult = g / grams
             qty = f"{g:g} g"
@@ -102,10 +138,20 @@ def heuristic_parse(text: str) -> dict[str, Any]:
             "carbs_g": round(c * mult, 1), "fat_g": round(f * mult, 1), "fiber_g": round(fib * mult, 1),
             "confidence": "medium",
         })
-    question = ""
+    questions = []
+    if guessed:
+        questions.append(f"I guessed at: {', '.join(guessed)}. Edit the numbers if you know them better.")
     if unknown:
-        question = f"I couldn't size up: {', '.join(unknown)}. Roughly how much was it, or what's in it?"
-    return {"items": items, "clarifying_question": question}
+        questions.append(f"I couldn't size up: {', '.join(unknown)}. Roughly how much was it, or what's in it?")
+    return {"items": items, "clarifying_question": " ".join(questions)}
+
+
+def _generic(chunk: str):
+    words = set(re.findall(r"[a-z]+", chunk))
+    for keys, guess in GENERIC:
+        if any((k in words) if " " not in k else (k in chunk) for k in keys):
+            return guess
+    return None
 
 
 def _refs_for(text: str) -> str:

@@ -52,6 +52,10 @@ def _pick(pool: dict[str, dict], token: str, variant: int, used: set[str], prefe
     pattern, _, muscle = token.partition(":")
     opts = [k for k, v in pool.items() if v["pattern"] == pattern and k not in used
             and (not muscle or muscle in v["muscles"])]
+    # If you have weights, rotate among weighted options; bodyweight is the fallback, not the variety.
+    loaded = [k for k in opts if pool[k]["equipment"] != "bodyweight"]
+    if loaded and not prefer:
+        opts = loaded
     if prefer:
         opts.sort(key=lambda k: prefer.index(k) if k in prefer else len(prefer))
     if not opts and pattern in FALLBACK_PATTERN:
@@ -69,7 +73,8 @@ def _labels(n: int, band: str) -> list[str]:
     return SPLITS[n]
 
 
-def build_plan(user: User) -> dict[str, Any]:
+def build_plan(user: User, shuffle: int = 0) -> dict[str, Any]:
+    """shuffle > 0 rotates to the next exercise option for each slot (used by "Rebuild plan")."""
     band = age_band(user.age)
     n = max(1, min(6, user.training_days_per_week))
     if band == "senior":
@@ -82,7 +87,7 @@ def build_plan(user: User) -> dict[str, Any]:
     days = []
     for dow, label in zip(SCHEDULE[n], _labels(n, band)):
         base = label.rsplit(" ", 1)[0] if label.endswith((" A", " B")) else label
-        variant = 1 if label.endswith("B") else 0
+        variant = (1 if label.endswith("B") else 0) + shuffle
         used: set[str] = set()
         exercises = []
         for pattern in FOCUS_PATTERNS[base]:
@@ -123,11 +128,11 @@ def build_plan(user: User) -> dict[str, Any]:
     return {"name": f"{name} ({n}x/week)", "days": days, "notes": notes}
 
 
-def create_plan(session: Session, user: User) -> WorkoutPlan:
+def create_plan(session: Session, user: User, shuffle: int = 0) -> WorkoutPlan:
     for old in session.exec(select(WorkoutPlan).where(WorkoutPlan.user_id == user.id, WorkoutPlan.active == True)):  # noqa: E712
         old.active = False
         session.add(old)
-    p = build_plan(user)
+    p = build_plan(user, shuffle)
     plan = WorkoutPlan(user_id=user.id, name=p["name"], days=p["days"], notes=p["notes"])
     session.add(plan)
     session.commit()
@@ -189,3 +194,26 @@ def session_feedback(user: User, focus: str, prog: list[dict[str, Any]]) -> str:
                         max_tokens=250)
     except Exception:
         return fallback
+
+
+def rebuild_plan(session: Session, user: User) -> dict[str, Any]:
+    """New plan from current settings with different exercise picks where alternatives exist.
+
+    Returns the plan plus a human message saying what changed, so the button never looks dead.
+    """
+    current = session.exec(select(WorkoutPlan).where(WorkoutPlan.user_id == user.id,
+                                                     WorkoutPlan.active == True)).first()  # noqa: E712
+    before = {e["slug"] for d in (current.days if current else []) for e in d["exercises"]}
+    n_plans = len(session.exec(select(WorkoutPlan.id).where(WorkoutPlan.user_id == user.id)).all())
+    plan = create_plan(session, user, shuffle=n_plans)
+    after = {e["slug"] for d in plan.days for e in d["exercises"]}
+    swapped_in = sorted(after - before)
+    if not current:
+        msg = f"Built your {plan.name} plan."
+    elif swapped_in:
+        names = [EXERCISES[s]["name"] for s in swapped_in][:4]
+        msg = f"New plan built. Swapped in: {', '.join(names)}" + ("…" if len(swapped_in) > 4 else ".")
+    else:
+        msg = ("Rebuilt from your settings, but there aren't other options for your equipment yet, "
+               "so the exercises are the same. Change equipment or days in Settings for a different split.")
+    return {**plan.model_dump(), "message": msg}

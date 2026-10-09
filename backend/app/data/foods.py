@@ -64,9 +64,56 @@ FOODS: dict[str, tuple[list[str], str, int, int, float, float, float, float]] = 
     "khichdi": ([], "1 cup", 200, 240, 9, 38, 6, 5),
     "maggi": (["instant noodles", "ramen"], "1 pack", 70, 310, 7, 44, 12, 2),
     "sandwich": (["veg sandwich"], "1 sandwich", 150, 300, 10, 40, 11, 3),
+    # ---- week 2: dishes people actually logged / asked about ----
+    "mutton curry": (["goat curry", "mutton", "gosht", "mutton gravy", "rogan josh", "bhuna gosht", "mutton masala"],
+                     "1 cup", 240, 420, 32, 8, 29, 2),
+    "paneer curry": (["paneer butter masala", "shahi paneer", "paneer tikka masala", "kadai paneer", "matar paneer",
+                      "paneer masala"], "1 cup", 220, 380, 16, 12, 30, 2),
+    "keema": (["kheema", "mutton keema", "chicken keema", "keema matar"], "1 cup", 200, 380, 28, 8, 26, 3),
+    "mutton kidney": (["kidney", "kidneys", "gurda", "kapura"], "100 g cooked", 100, 150, 24, 1, 5, 0),
+    "liver": (["kaleji", "mutton liver", "chicken liver"], "100 g cooked", 100, 175, 26, 4, 6, 0),
+    "egg curry": (["anda curry", "egg masala"], "1 cup (2 eggs)", 220, 300, 14, 8, 23, 2),
+    "fish curry": (["machli", "macher jhol", "fish masala"], "1 cup", 240, 280, 26, 8, 16, 1),
+    "chicken tikka": (["tandoori chicken", "chicken kebab", "seekh kebab"], "150 g", 150, 260, 38, 4, 10, 1),
+    "aloo sabzi": (["aloo", "potato sabzi", "aloo matar", "dum aloo", "jeera aloo"], "1 cup", 180, 200, 3, 28, 9, 4),
+    "kadhi": (["kadhi pakora"], "1 cup", 240, 180, 6, 14, 11, 1),
+    "pulao": (["veg pulao", "jeera rice", "fried rice"], "1 cup", 180, 250, 5, 42, 7, 2),
+    "pav bhaji": ([], "1 plate (2 pav)", 350, 500, 12, 65, 22, 8),
+    "dhokla": ([], "4 pieces", 120, 200, 8, 30, 5, 2),
+    "lassi": (["sweet lassi", "chaas", "buttermilk"], "1 glass", 250, 160, 7, 22, 5, 0),
+    "gulab jamun": (["jamun", "rasgulla"], "1 piece", 50, 150, 2, 24, 6, 0),
+    "jalebi": ([], "3 pieces", 60, 230, 1, 34, 10, 0),
+    "bagel": (["bagel with cream cheese"], "1 medium", 105, 280, 11, 55, 2, 2),
+    "cereal": (["corn flakes", "cheerios"], "1 cup with milk", 280, 250, 9, 40, 6, 3),
+    "burrito": (["chicken burrito", "burrito bowl"], "1 burrito", 350, 650, 32, 70, 25, 9),
+    "steak": (["beef", "sirloin"], "170 g cooked", 170, 400, 46, 0, 23, 0),
+    "ground beef": (["mince", "minced beef"], "113 g cooked", 113, 290, 26, 0, 20, 0),
+    "protein bar": (["quest bar"], "1 bar", 60, 210, 20, 22, 8, 10),
+    "granola bar": ([], "1 bar", 40, 190, 4, 29, 7, 2),
+    "cheese": (["cheddar", "cheese slice"], "1 slice", 28, 110, 7, 0, 9, 0),
+    "chips": (["crisps", "lays"], "1 oz bag", 28, 155, 2, 15, 10, 1),
+    "ice cream": ([], "1 cup", 130, 270, 5, 31, 14, 1),
+    "cookie": (["cookies", "biscuit", "biscuits"], "1 medium", 30, 140, 2, 19, 7, 1),
+    "avocado": (["avocado toast"], "half", 100, 160, 2, 9, 15, 7),
 }
+
+# When a dish isn't in the table, guess from its category so the user gets *something* editable.
+# keywords -> (label, serving, kcal, protein, carbs, fat, fiber)
+GENERIC: list[tuple[tuple[str, ...], tuple[str, str, int, float, float, float, float]]] = [
+    (("curry", "gravy", "masala", "korma", "stew"), ("curry (guessed)", "1 cup", 320, 15, 14, 22, 3)),
+    (("soup", "broth"), ("soup (guessed)", "1 bowl", 150, 7, 15, 6, 2)),
+    (("wrap", "roll", "sub", "kathi"), ("wrap (guessed)", "1 wrap", 400, 18, 45, 16, 4)),
+    (("noodles", "chowmein", "hakka", "lo mein"), ("noodles (guessed)", "1 plate", 450, 12, 65, 15, 3)),
+    (("cake", "pastry", "dessert", "sweet", "mithai", "halwa", "kheer"), ("dessert (guessed)", "1 serving", 300, 4, 40, 14, 1)),
+    (("snack", "namkeen", "bhujia", "pakora", "pakoda", "bhaji"), ("fried snack (guessed)", "1 serving", 250, 5, 25, 15, 2)),
+    (("shake", "smoothie"), ("shake (guessed)", "1 glass", 280, 10, 40, 8, 2)),
+    (("sabzi", "sabji", "vegetable", "veggies", "bhaji"), ("mixed veg (guessed)", "1 cup", 150, 4, 15, 8, 5)),
+]
 
 NUMBER_WORDS = {
     "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
     "half": 0.5, "couple": 2, "few": 3,
 }
+
+# Portion words shift the estimate
+SIZE_WORDS = {"small": 0.7, "little": 0.6, "large": 1.4, "big": 1.4, "huge": 1.8, "heaping": 1.3}

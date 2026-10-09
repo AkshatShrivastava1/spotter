@@ -2,7 +2,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Button, Card, ErrorText, Label, Screen } from '@/components/ui';
+import { Button, Card, CoachBubble, ErrorText, Label, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { colors, type } from '@/lib/theme';
 import { Plan } from '@/lib/types';
@@ -13,6 +13,22 @@ export default function TrainScreen() {
   const router = useRouter();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rebuildMsg, setRebuildMsg] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+
+  async function rebuild() {
+    setRebuilding(true);
+    setError(null);
+    try {
+      const p = await api.post<Plan & { message: string }>('/workouts/plan/generate');
+      setPlan(p);
+      setRebuildMsg(p.message);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRebuilding(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -49,8 +65,8 @@ export default function TrainScreen() {
                 onPress={() => router.push({ pathname: '/workout/[day]', params: { day: d.day } })} />
             </Card>
           ))}
-          <Button title="Rebuild plan from my settings" variant="ghost"
-            onPress={async () => setPlan(await api.post<Plan>('/workouts/plan/generate'))} />
+          <Button title="Rebuild plan from my settings" variant="ghost" loading={rebuilding} onPress={rebuild} />
+          {rebuildMsg && <CoachBubble title="Plan updated" body={rebuildMsg} />}
         </>
       )}
     </Screen>

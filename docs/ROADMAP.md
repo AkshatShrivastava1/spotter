@@ -18,13 +18,16 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] All-ages coaching: kid / teen / adult / senior bands with different targets, nudges, plans and guardrails
 - [x] Offline mock mode, 23 backend tests, typed mobile app
 
-## Week 2: from my own first test run
-- [ ] Add an Anthropic API key and re-test; offline mode can't size up dishes outside the built-in table
-      (e.g. "mutton curry with boneless pieces and kidney") and chat only answers 3 canned questions
-- [ ] Grow the offline food table (mutton/goat curry, keema, organ meats, more home dishes) as a fallback
-- [ ] "Rebuild plan" gives no feedback and returns the same plan when settings haven't changed;
-      show a confirmation and add variety (or rename it to make clear it uses current settings)
-- [ ] Use it daily on my phone and log every annoyance here
+## Week 2 (done): fixes from my own first test run
+- [x] Offline food table grew by 28 dishes (mutton curry, keema, kidney, liver, egg/fish/paneer curries,
+      pulao, kadhi, lassi, sweets, plus common US foods)
+- [x] Unknown dishes get a low-confidence category guess ("curry", "noodles", "dessert"...) instead of nothing
+- [x] Portion words ("small bowl", "large plate") scale estimates; "chicken ... gravy" counts as a curry, not grilled chicken
+- [x] Meal ideas stay inside the remaining budget even after a protein top-up; no half eggs
+- [x] "Rebuild plan" rotates to different exercises and always says what changed (or why nothing could)
+- [x] Offline coach chat answers its own quick prompts (bad day, cravings, meal prep, water, protein)
+- [x] 12 new tests (35 total)
+- [ ] Add an Anthropic API key and re-test with real AI (needs my key)
 
 ## Next (weeks 3+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me

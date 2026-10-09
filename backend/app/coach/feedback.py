@@ -23,13 +23,15 @@ from .persona import system_prompt
 
 MEAL_SHARE = {"breakfast": 0.25, "lunch": 0.35, "dinner": 0.30, "snack": 0.10}
 
-MEAT = {"chicken breast", "butter chicken", "chicken curry", "fish", "tuna", "biryani", "burger"}
-EGG = {"egg", "egg whites", "omelette"}
-DAIRY = {"paneer", "paneer bhurji", "palak paneer", "curd", "greek yogurt", "milk", "whey protein",
-         "ghee", "latte", "chai", "pizza", "butter chicken"}
+MEAT = {"chicken breast", "butter chicken", "chicken curry", "fish", "tuna", "biryani", "burger", "mutton curry",
+        "keema", "mutton kidney", "liver", "fish curry", "chicken tikka", "steak", "ground beef", "burrito"}
+EGG = {"egg", "egg whites", "omelette", "egg curry"}
+DAIRY = {"paneer", "paneer bhurji", "palak paneer", "paneer curry", "curd", "greek yogurt", "milk", "whey protein",
+         "ghee", "latte", "chai", "pizza", "butter chicken", "lassi", "cheese", "ice cream", "kadhi"}
 
-PROTEIN_SOURCES = ["chicken breast", "chicken curry", "fish", "tuna", "omelette", "egg", "paneer bhurji", "palak paneer",
-                   "tofu", "dal", "rajma", "chole"]
+PROTEIN_SOURCES = ["chicken breast", "chicken curry", "chicken tikka", "mutton curry", "keema", "fish", "fish curry", "tuna",
+                   "omelette", "egg", "egg curry", "paneer bhurji", "palak paneer", "paneer curry", "tofu", "dal", "rajma",
+                   "chole"]
 # Easy protein top-ups when a plate falls short
 PROTEIN_ADDONS = ["whey protein", "greek yogurt", "egg whites", "curd"]
 CARB_SOURCES = ["roti", "white rice", "brown rice", "oats", "poha", "idli", "dosa", "whole wheat bread",
@@ -174,38 +176,47 @@ def _combo_stats(names: list[str], mults: list[float]) -> dict[str, float]:
     return {k: round(v) for k, v in tot.items()}
 
 
+def _countable(name: str) -> bool:
+    parts = FOODS[name][1].split()
+    return len(parts) >= 2 and parts[0] == "1" and parts[1] in ("large", "medium", "piece", "slice")
+
+
 def candidate_meals(user: User, kcal_budget: int, protein_need: int, limit: int = 3) -> list[dict[str, Any]]:
     allowed = allowed_foods(user)
     home = set(_home_match(user, allowed))
+    addon_name = next((a for a in PROTEIN_ADDONS if a in allowed and not (a == "whey protein" and user.age < 18)), None)
     proteins = [p for p in PROTEIN_SOURCES if p in allowed]
     carbs = [c for c in CARB_SOURCES if c in allowed]
     vegs = [v for v in VEG_SOURCES if v in allowed]
     scored = []
     for p, c, v in itertools.product(proteins, carbs, vegs):
-        for pm, cm in ((1, 1), (1.5, 1), (2, 1), (1, 2), (1.5, 2), (2, 2)):
+        for pm, cm in ((1, 1), (1.5, 1), (2, 1), (1, 2), (1.5, 2), (2, 2), (3, 1), (3, 2)):
+            # Whole numbers only for things you count (eggs, rotis); 3x only makes sense for those.
+            if (_countable(p) and pm != int(pm)) or (not _countable(p) and pm == 3):
+                continue
             names, mults = [p, c, v], [pm, cm, 1]
             s = _combo_stats(names, mults)
+            addon = None
+            if protein_need - s["protein_g"] >= 10 and addon_name:
+                addon = addon_name
+                _a, _s, _g, k2, p2, c2, f2, _fb = FOODS[addon]
+                s = {"kcal": s["kcal"] + k2, "protein_g": s["protein_g"] + round(p2), "carbs_g": s["carbs_g"] + round(c2),
+                     "fat_g": s["fat_g"] + round(f2)}
+            # The whole plate, top-up included, has to fit the budget.
             if s["kcal"] > kcal_budget * 1.05 or s["kcal"] < kcal_budget * 0.5:
                 continue
             score = min(s["protein_g"], protein_need) * 2 - abs(kcal_budget - s["kcal"]) * 0.05
-            score += 40 * len(home & set(names)) + (30 if p in home else 0)
-            scored.append((score, names, mults, s))
+            score += 40 * len(home & set(names)) + (30 if p in home else 0) - (15 if addon else 0)
+            scored.append((score, names, mults, s, addon))
     scored.sort(key=lambda x: -x[0])
     out, seen = [], set()
-    for _score, names, mults, s in scored:
+    for _score, names, mults, s, addon in scored:
         if names[0] in seen:
             continue
         seen.add(names[0])
         desc = " + ".join(f"{fmt_qty(m, FOODS[n][1])} {n}" for n, m in zip(names, mults))
-        short = protein_need - s["protein_g"]
-        addon = None
-        if short >= 10:
-            addon = next((a for a in PROTEIN_ADDONS if a in allowed and not (a == "whey protein" and user.age < 18)), None)
-            if addon:
-                desc += f" (+ 1 {FOODS[addon][1].removeprefix('1 ')} {addon} to close the protein gap)"
-                _a, _s, _g, k2, p2, c2, f2, _fb = FOODS[addon]
-                s = {"kcal": s["kcal"] + k2, "protein_g": s["protein_g"] + round(p2), "carbs_g": s["carbs_g"] + round(c2),
-                     "fat_g": s["fat_g"] + round(f2)}
+        if addon:
+            desc += f" (+ 1 {FOODS[addon][1].removeprefix('1 ')} {addon} to close the protein gap)"
         out.append({"title": f"{names[0].title()} plate", "items": desc, **s,
                     "from_home_foods": bool(home & set(names))})
         if len(out) >= limit:
