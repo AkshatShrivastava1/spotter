@@ -29,10 +29,18 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] 12 new tests (35 total)
 - [ ] Add an Anthropic API key and re-test with real AI (needs my key)
 
-## Next (weeks 3+)
+## Week 3 (done): ready for the cloud
+- [x] Postgres support (works with the `DATABASE_URL` that Render / Railway / Neon / Supabase hand out)
+- [x] Same test suite runs against real Postgres in CI, plus a Docker build check
+- [x] Dockerfile + Render blueprint; `/health` checks the database
+- [x] Nudges can be driven by an external cron (`/internal/run-nudges` + GitHub Actions) so they fire on free hosts that sleep
+- [x] Deploy guide in `docs/DEPLOY.md`
+- [ ] Create the Neon + Render accounts and do the first deploy (needs my accounts)
+
+## Next (weeks 4+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me
-- [ ] Real auth (Supabase Auth or Clerk) instead of `X-User-Id`; Postgres instead of SQLite
-- [ ] Deploy backend (Fly.io / Railway) so nudges fire without my laptop on
+- [ ] Real auth (Supabase Auth or Clerk) instead of `X-User-Id`
+- [ ] Move progress photos to object storage so redeploys don't wipe them
 - [ ] Better food data: USDA FoodData Central + Open Food Facts barcode scan
 - [ ] "Plan my day" mode: coach proposes breakfast/lunch/dinner in the morning, evening check-in compares plan vs actual
 - [ ] Weekly meal-prep plan + grocery list from home foods

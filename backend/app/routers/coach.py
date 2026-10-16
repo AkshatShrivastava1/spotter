@@ -9,6 +9,7 @@ from ..coach.chat import chat
 from ..coach.checkin import CHECKIN_QUESTIONS, submit_checkin, weight_trend
 from ..coach.context import day_state, get_daily_log, local_today, streak, week_summary
 from ..coach.nudges import evaluate_user
+from ..config import get_settings
 from ..db import get_session
 from ..deps import current_user
 from ..models import CoachMessage, Notification, ProgressPhoto, User, WeeklyCheckin
@@ -16,7 +17,7 @@ from ..push import send_push
 from ..schemas import AmountIn, ChatIn, CheckinIn
 
 router = APIRouter(tags=["coach"])
-UPLOADS = Path("uploads")
+UPLOADS = Path(get_settings().uploads_dir)
 
 
 @router.get("/today")

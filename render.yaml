@@ -1,0 +1,18 @@
+# Render Blueprint: New > Blueprint > pick this repo. Database comes from Neon/Supabase (free, doesn't expire).
+services:
+  - type: web
+    name: spotter-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste your Postgres connection string in the Render dashboard
+      - key: SPOTTER_ANTHROPIC_API_KEY
+        sync: false
+      - key: SPOTTER_CRON_SECRET
+        generateValue: true
+      # Free instances sleep when idle, so the GitHub Actions cron drives nudges instead.
+      - key: SPOTTER_SCHEDULER_ENABLED
+        value: "false"

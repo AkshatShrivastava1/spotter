@@ -68,6 +68,10 @@ Push notifications need a physical device and a development build (`npx expo run
 Expo Go can't receive remote push on Android anymore. Every nudge also lands in the in-app Coach → Nudges inbox,
 so you can test the coaching loop without push.
 
+## Deploy
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) (Neon Postgres + Render + a GitHub Actions cron for nudges, all free tier).
+
 ## How the coach thinks
 
 The rule: **numbers are computed, words are generated.**

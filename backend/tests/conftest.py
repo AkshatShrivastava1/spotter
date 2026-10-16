@@ -2,18 +2,26 @@ import os
 import tempfile
 
 _tmp = tempfile.mkdtemp()
-os.environ["SPOTTER_DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+# Default: throwaway SQLite. Set TEST_DATABASE_URL to run the same suite against Postgres (CI does).
+os.environ["SPOTTER_DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
+os.environ["SPOTTER_UPLOADS_DIR"] = f"{_tmp}/uploads"
 os.environ["SPOTTER_SCHEDULER_ENABLED"] = "false"
 os.environ["SPOTTER_EXPO_PUSH_ENABLED"] = "false"
 os.environ["SPOTTER_LLM_PROVIDER"] = "mock"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlmodel import SQLModel  # noqa: E402
 
+from app import models  # noqa: E402, F401
+from app.db import engine  # noqa: E402
 from app.llm import set_llm_for_tests  # noqa: E402
 from app.main import app  # noqa: E402
 
 set_llm_for_tests(None)
+# Start every run from an empty schema (matters when pointing at a reused Postgres database).
+SQLModel.metadata.drop_all(engine)
+SQLModel.metadata.create_all(engine)
 
 ONBOARD = {
     "name": "Akshat", "timezone": "America/New_York", "sex": "male", "age": 22, "height_cm": 178,
