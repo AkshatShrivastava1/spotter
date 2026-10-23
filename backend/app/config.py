@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # in-process scheduler is off, e.g. on hosts that sleep idle servers). Empty = endpoint disabled.
     cron_secret: str = ""
 
+    # Signs login tokens. Must be set (and kept secret) in production.
+    jwt_secret: str = ""
+
     # Where progress photos are stored. On a cloud host, point this at a persistent disk.
     uploads_dir: str = "uploads"
 

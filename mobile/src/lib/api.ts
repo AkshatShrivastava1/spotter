@@ -1,11 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-const USER_KEY = 'spotter.userId';
+const TOKEN_KEY = 'spotter.token';
+const LEGACY_USER_KEY = 'spotter.userId'; // pre-login builds stored a bare user id
 const URL_KEY = 'spotter.apiUrl';
 
-let userId: string | null = null;
+let token: string | null = null;
 let baseUrl: string | null = null;
+let onAuthLost: (() => void) | null = null;
+
+/** Called when the server rejects our token (expired / logged out elsewhere). */
+export const setOnAuthLost = (fn: (() => void) | null) => {
+  onAuthLost = fn;
+};
 
 function defaultUrl(): string {
   // EXPO_PUBLIC_API_URL wins (set it to your laptop's LAN IP when testing on a phone),
@@ -18,15 +25,20 @@ function defaultUrl(): string {
 }
 
 export async function loadSession(): Promise<string | null> {
-  userId = await AsyncStorage.getItem(USER_KEY);
+  token = await AsyncStorage.getItem(TOKEN_KEY);
+  await AsyncStorage.removeItem(LEGACY_USER_KEY);
   baseUrl = (await AsyncStorage.getItem(URL_KEY)) || defaultUrl();
-  return userId;
+  return token;
 }
 
-export async function setUserId(id: string | null) {
-  userId = id;
-  if (id) await AsyncStorage.setItem(USER_KEY, id);
-  else await AsyncStorage.removeItem(USER_KEY);
+export async function setToken(t: string | null) {
+  token = t;
+  if (t) await AsyncStorage.setItem(TOKEN_KEY, t);
+  else await AsyncStorage.removeItem(TOKEN_KEY);
+}
+
+export async function logout() {
+  await setToken(null);
 }
 
 export async function setApiUrl(url: string) {
@@ -35,8 +47,8 @@ export async function setApiUrl(url: string) {
 }
 
 export const getApiUrl = () => baseUrl || defaultUrl();
-export const getUserId = () => userId;
-export const authHeaders = (): Record<string, string> => (userId ? { 'X-User-Id': userId } : {});
+export const isLoggedIn = () => !!token;
+export const authHeaders = (): Record<string, string> => (token ? { Authorization: `Bearer ${token}` } : {});
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -56,6 +68,10 @@ async function request<T>(method: string, path: string, body?: unknown, form?: F
     });
   } catch {
     throw new ApiError(0, `Can't reach the Spotter server at ${getApiUrl()}. Check it's running and the URL in Settings.`);
+  }
+  if (res.status === 401 && token && !path.startsWith('/auth/')) {
+    await setToken(null);
+    onAuthLost?.();
   }
   if (!res.ok) {
     let msg = res.statusText;
@@ -96,3 +112,17 @@ export type AgeBand = 'child' | 'teen' | 'adult' | 'senior';
 export type Profile = { units: Units; age_band: AgeBand; age: number };
 export const getProfile = () => api.get<Profile>('/users/me');
 export const isYouth = (b?: AgeBand) => b === 'child' || b === 'teen';
+
+type AuthResponse = { access_token: string; user: { id: number; name: string } };
+
+export async function login(email: string, password: string) {
+  const r = await api.post<AuthResponse>('/auth/login', { email, password });
+  await setToken(r.access_token);
+  return r.user;
+}
+
+export async function signup(body: Record<string, unknown>) {
+  const r = await api.post<AuthResponse>('/auth/signup', body);
+  await setToken(r.access_token);
+  return r.user;
+}

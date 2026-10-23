@@ -5,13 +5,13 @@ from ..coach.training import create_plan
 from ..db import get_session
 from ..deps import current_user
 from ..models import User
-from ..schemas import OnboardingIn, ProfilePatch, PushTokenIn
+from ..schemas import ProfilePatch, PushTokenIn
 from ..targets import age_band, compute_targets, is_minor
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-def _apply_targets(user: User) -> dict:
+def apply_targets(user: User) -> dict:
     t = compute_targets(sex=user.sex, age=user.age, height_cm=user.height_cm, weight_kg=user.weight_kg,
                         goal=user.goal, activity_level=user.activity_level)
     user.target_kcal, user.target_protein_g = t.kcal, t.protein_g
@@ -20,21 +20,14 @@ def _apply_targets(user: User) -> dict:
     return {"bmr": t.bmr, "tdee": t.tdee}
 
 
-@router.post("")
-def onboard(body: OnboardingIn, session: Session = Depends(get_session)):
-    user = User(**body.model_dump())
-    energy = _apply_targets(user)
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    plan = create_plan(session, user)
-    session.refresh(user)
-    return {"user": user.model_dump(), "energy": energy, "plan_id": plan.id}
+def public_user(user: User) -> dict:
+    """What the app is allowed to see about a user. Never includes the password hash."""
+    return {**user.model_dump(exclude={"password_hash"}), "age_band": age_band(user.age)}
 
 
 @router.get("/me")
 def me(user: User = Depends(current_user)):
-    return {**user.model_dump(), "age_band": age_band(user.age)}
+    return public_user(user)
 
 
 @router.patch("/me")
@@ -50,14 +43,14 @@ def update_me(body: ProfilePatch, user: User = Depends(current_user), session: S
     for k, v in data.items():
         setattr(user, k, v)
     if recompute:
-        _apply_targets(user)
+        apply_targets(user)
     session.add(user)
     session.commit()
     session.refresh(user)
     if replan:
         create_plan(session, user)
     session.refresh(user)
-    return {**user.model_dump(), "age_band": age_band(user.age)}
+    return public_user(user)
 
 
 @router.post("/me/push-token")

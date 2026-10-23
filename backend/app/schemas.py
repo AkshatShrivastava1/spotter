@@ -40,6 +40,16 @@ class OnboardingIn(BaseModel):
         return self
 
 
+class SignupIn(OnboardingIn):
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
 class ProfilePatch(BaseModel):
     name: str | None = None
     units: Literal["imperial", "metric"] | None = None

@@ -7,7 +7,7 @@ from sqlmodel import Session
 from app.coach.nudges import evaluate_user
 from app.db import engine
 from app.models import User
-from tests.conftest import ONBOARD
+from tests.conftest import ONBOARD, signup
 
 KID = {**ONBOARD, "name": "Aarav", "age": 8, "height_cm": 128, "weight_kg": 26, "goal": "lose", "coach_tone": "drill"}
 TEEN = {**ONBOARD, "name": "Maya", "age": 15, "sex": "female", "height_cm": 160, "weight_kg": 52, "goal": "lose"}
@@ -15,16 +15,13 @@ SENIOR = {**ONBOARD, "name": "Ram", "age": 72, "height_cm": 168, "weight_kg": 70
 
 
 def _make(client, body):
-    r = client.post("/users", json=body)
-    assert r.status_code == 200, r.text
-    uid = r.json()["user"]["id"]
-    return uid, {"X-User-Id": str(uid)}
+    uid, h, _data = signup(client, body)
+    return uid, h
 
 
 def test_child_requires_guardian(client):
-    r = client.post("/users", json=KID)
-    assert r.status_code == 422
-    assert "guardian" in r.text
+    _uid, _h, r = signup(client, KID, expect=422)
+    assert "guardian" in str(r)
 
 
 def test_child_account_is_habit_mode(client):

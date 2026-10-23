@@ -1,14 +1,14 @@
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button, Card, Chips, CoachBubble, ErrorText, Field, Label, Screen } from '@/components/ui';
-import { api, getApiUrl, setApiUrl, setUserId } from '@/lib/api';
+import { getApiUrl, setApiUrl, signup } from '@/lib/api';
 import { colors, type } from '@/lib/theme';
 
 const splitList = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
 
-const STEPS = ['You', 'Goal', 'Food', 'Training', 'Coach'] as const;
+const STEPS = ['You', 'Goal', 'Food', 'Training', 'Coach', 'Account'] as const;
 
 export default function Onboarding() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function Onboarding() {
     diet_type: 'omnivore', home_foods: '', cuisines: '', allergies: '',
     equipment: 'full_gym', training_days_per_week: '4', experience: 'beginner',
     coach_tone: 'firm', wake_time: '07:30', sleep_time: '23:30', apiUrl: getApiUrl(),
-    guardian_name: '', guardian_email: '', guardian_consent: '',
+    guardian_name: '', guardian_email: '', guardian_consent: '', email: '', password: '',
   });
   const age = Number(f.age);
   const child = age > 0 && age < 13;
@@ -41,6 +41,7 @@ export default function Onboarding() {
     f.home_foods.trim().length > 0,
     true,
     true,
+    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim()) && f.password.length >= 8,
   ][step];
 
   async function finish() {
@@ -48,7 +49,9 @@ export default function Onboarding() {
     setError(null);
     try {
       await setApiUrl(f.apiUrl);
-      const res = await api.post<{ user: { id: number } }>('/users', {
+      await signup({
+        email: f.email.trim(),
+        password: f.password,
         name: f.name.trim(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
         units,
@@ -73,7 +76,6 @@ export default function Onboarding() {
         guardian_email: child ? f.guardian_email.trim() || null : null,
         guardian_consent: child && f.guardian_consent === 'yes',
       });
-      await setUserId(String(res.user.id));
       router.replace('/');
     } catch (e: any) {
       setError(e.message);
@@ -91,6 +93,7 @@ export default function Onboarding() {
       {step === 0 && (
         <>
           <Text style={type.h1}>Let&apos;s meet. I&apos;m Spotter, your coach.</Text>
+          <Link href="/login" style={{ color: colors.accent, fontWeight: '700' }}>Already have an account? Log in</Link>
           <Text style={type.small}>I need a few numbers to set your targets. Only used for coaching.</Text>
           <Card>
             <Field label="First name" value={f.name} onChangeText={set('name')} placeholder="Akshat" />
@@ -200,6 +203,22 @@ export default function Onboarding() {
             </View>
             <Text style={type.small}>I time your nudges around these.</Text>
           </Card>
+        </>
+      )}
+
+      {step === 5 && (
+        <>
+          <Text style={type.h1}>Save your progress</Text>
+          <Text style={type.small}>
+            {child ? "Use a parent's email. " : ''}Your account keeps your logs, plan and check-ins safe, and lets you
+            sign in on another phone.
+          </Text>
+          <Card>
+            <Field label={child ? "Parent's email" : 'Email'} value={f.email} onChangeText={set('email')}
+              autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+            <Field label="Password (8+ characters)" value={f.password} onChangeText={set('password')}
+              secureTextEntry autoComplete="new-password" />
+          </Card>
           <Card>
             <Field label="Server URL (dev)" value={f.apiUrl} onChangeText={set('apiUrl')} autoCapitalize="none" />
             <Text style={type.small}>On a phone, use your laptop&apos;s LAN IP, e.g. http://192.168.1.20:8000</Text>
@@ -213,7 +232,7 @@ export default function Onboarding() {
         {step < STEPS.length - 1 ? (
           <Button title="Next" disabled={!valid} onPress={() => setStep(step + 1)} style={{ flex: 2 }} />
         ) : (
-          <Button title="Build my plan" loading={busy} onPress={finish} style={{ flex: 2 }} />
+          <Button title="Build my plan" loading={busy} disabled={!valid} onPress={finish} style={{ flex: 2 }} />
         )}
       </View>
     </Screen>

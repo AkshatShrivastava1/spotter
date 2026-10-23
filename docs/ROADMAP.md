@@ -37,9 +37,17 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] Deploy guide in `docs/DEPLOY.md`
 - [ ] Create the Neon + Render accounts and do the first deploy (needs my accounts)
 
-## Next (weeks 4+)
+## Week 4 (done): real accounts
+- [x] Email + password sign up and log in (scrypt password hashing, signed 30-day tokens)
+- [x] Every endpoint requires a valid token; the old `X-User-Id` header no longer works
+- [x] Login throttling (5 failed tries per email per 15 min) and no account probing
+- [x] App: account step in onboarding, log in screen, log out, auto return to log in when a session expires
+- [x] Existing databases get the new columns automatically on startup
+- [x] 8 new tests (47 total), checked on SQLite and Postgres
+
+## Next (weeks 5+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me
-- [ ] Real auth (Supabase Auth or Clerk) instead of `X-User-Id`
+- [ ] Password reset by email, and Sign in with Apple / Google
 - [ ] Move progress photos to object storage so redeploys don't wipe them
 - [ ] Better food data: USDA FoodData Central + Open Food Facts barcode scan
 - [ ] "Plan my day" mode: coach proposes breakfast/lunch/dinner in the morning, evening check-in compares plan vs actual

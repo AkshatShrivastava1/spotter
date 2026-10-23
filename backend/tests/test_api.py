@@ -9,6 +9,7 @@ from app.coach.nutrition import heuristic_parse
 from app.db import engine
 from app.models import Meal, User
 from app.targets import compute_targets
+from tests.conftest import ONBOARD, signup
 
 
 def test_targets_reasonable():
@@ -83,9 +84,8 @@ def test_meal_ideas_respect_diet(client, user):
 
 
 def test_meal_ideas_asks_when_no_home_foods(client):
-    from tests.conftest import ONBOARD
-    r = client.post("/users", json={**ONBOARD, "home_foods": []}).json()
-    out = client.get("/meal-ideas", headers={"X-User-Id": str(r["user"]["id"])}).json()
+    _uid, h, _ = signup(client, {**ONBOARD, "home_foods": []})
+    out = client.get("/meal-ideas", headers=h).json()
     assert "what do you usually cook" in out["question"].lower()
 
 
@@ -186,5 +186,6 @@ def test_progress_photo_roundtrip(client, user, tmp_path, monkeypatch):
                     headers=user["h"]).json()
     img = client.get(f"/progress-photos/{r['id']}/image", headers=user["h"])
     assert img.status_code == 200 and img.content == png
-    other = client.get(f"/progress-photos/{r['id']}/image", headers={"X-User-Id": "999999"})
+    _uid, other_h, _ = signup(client)
+    other = client.get(f"/progress-photos/{r['id']}/image", headers=other_h)
     assert other.status_code == 404

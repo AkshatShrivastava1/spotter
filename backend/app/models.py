@@ -19,6 +19,9 @@ class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
     created_at: datetime = Field(default_factory=utcnow)
+    # Login. Nullable only so databases from before accounts existed can still be upgraded.
+    email: str | None = Field(default=None, index=True, unique=True)
+    password_hash: str | None = None
     timezone: str = "America/New_York"
     units: str = "imperial"  # imperial (lb) | metric (kg): display only, storage is always kg
 

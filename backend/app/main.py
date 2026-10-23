@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 from .db import engine, init_db
 from .llm import get_llm
-from .routers import coach, internal, nutrition, training, users
+from .routers import auth, coach, internal, nutrition, training, users
 from .scheduler import start_scheduler
 
 
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Spotter API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-for r in (users.router, nutrition.router, coach.router, training.router, internal.router):
+for r in (auth.router, users.router, nutrition.router, coach.router, training.router, internal.router):
     app.include_router(r)
 
 

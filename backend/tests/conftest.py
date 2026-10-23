@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 
 _tmp = tempfile.mkdtemp()
 # Default: throwaway SQLite. Set TEST_DATABASE_URL to run the same suite against Postgres (CI does).
@@ -8,6 +9,7 @@ os.environ["SPOTTER_UPLOADS_DIR"] = f"{_tmp}/uploads"
 os.environ["SPOTTER_SCHEDULER_ENABLED"] = "false"
 os.environ["SPOTTER_EXPO_PUSH_ENABLED"] = "false"
 os.environ["SPOTTER_LLM_PROVIDER"] = "mock"
+os.environ["SPOTTER_JWT_SECRET"] = "test-secret-that-is-at-least-32-bytes-long"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -37,9 +39,20 @@ def client():
         yield c
 
 
+def signup(client, body: dict | None = None, *, expect: int = 200):
+    """Create an account. Returns (user_id, auth headers, response json)."""
+    body = {**(body or ONBOARD)}
+    body.setdefault("email", f"user-{uuid.uuid4().hex[:10]}@example.com")
+    body.setdefault("password", "correct-horse-battery")
+    r = client.post("/auth/signup", json=body)
+    assert r.status_code == expect, r.text
+    if expect != 200:
+        return None, None, r.json()
+    data = r.json()
+    return data["user"]["id"], {"Authorization": f"Bearer {data['access_token']}"}, data
+
+
 @pytest.fixture()
 def user(client):
-    r = client.post("/users", json=ONBOARD)
-    assert r.status_code == 200, r.text
-    uid = r.json()["user"]["id"]
-    return {"id": uid, "h": {"X-User-Id": str(uid)}, "data": r.json()}
+    uid, h, data = signup(client)
+    return {"id": uid, "h": h, "data": data}

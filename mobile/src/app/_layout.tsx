@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { getUserId, loadSession } from '@/lib/api';
+import { isLoggedIn, loadSession, setOnAuthLost } from '@/lib/api';
 import { registerForPush, syncSteps } from '@/lib/device';
 import { colors } from '@/lib/theme';
 
@@ -18,10 +18,15 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    setOnAuthLost(() => router.replace('/login'));
+    return () => setOnAuthLost(null);
+  }, [router]);
+
+  useEffect(() => {
     if (!ready) return;
-    const onboarding = segments[0] === 'onboarding';
-    if (!getUserId() && !onboarding) router.replace('/onboarding');
-    if (getUserId() && !onboarding) {
+    const public_ = segments[0] === 'onboarding' || segments[0] === 'login';
+    if (!isLoggedIn() && !public_) router.replace('/onboarding');
+    if (isLoggedIn() && !public_) {
       registerForPush();
       syncSteps();
     }
@@ -48,6 +53,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="checkin" options={{ title: 'Weekly check-in', presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="workout/[day]" options={{ title: 'Workout' }} />

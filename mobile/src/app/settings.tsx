@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
 import { Button, Card, Chips, ErrorText, Field, Label, Screen } from '@/components/ui';
-import { api, getApiUrl, setApiUrl, setUserId } from '@/lib/api';
+import { api, getApiUrl, logout, setApiUrl } from '@/lib/api';
 import { type } from '@/lib/theme';
 
 type Me = {
   name: string; coach_tone: string; home_foods: string[]; target_kcal: number; target_protein_g: number;
-  target_water_ml: number; target_steps: number; goal: string; age_band: string;
+  target_water_ml: number; target_steps: number; goal: string; age_band: string; email: string | null;
 };
 
 export default function Settings() {
@@ -36,6 +36,7 @@ export default function Settings() {
 
   return (
     <Screen>
+      {me?.email ? <Text style={type.small}>Signed in as {me.email}</Text> : null}
       <Card>
         <Label>Server</Label>
         <Field value={url} onChangeText={setUrl} autoCapitalize="none" />
@@ -66,7 +67,7 @@ export default function Settings() {
       )}
       {msg && <Text style={type.small}>{msg}</Text>}
       <ErrorText error={error} />
-      <Button title="Reset app (start over)" variant="danger" onPress={async () => { await setUserId(null); router.replace('/onboarding'); }} />
+      <Button title="Log out" variant="danger" onPress={async () => { await logout(); router.replace('/login'); }} />
     </Screen>
   );
 }

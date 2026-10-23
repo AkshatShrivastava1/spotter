@@ -89,7 +89,7 @@ That keeps the advice consistent and testable, and the app keeps working if the 
 
 Week 1 MVP. Before launching kid accounts publicly, the guardian step needs to become real COPPA-compliant
 verifiable parental consent (and app-store kids-category review). See [docs/ROADMAP.md](docs/ROADMAP.md) for what's next (voice check-in calls, camera form check,
-wearable sync, real auth, web app).
+wearable sync, password reset, web app).
 
 Not medical advice. Spotter enforces calorie floors and steers people to a doctor on pain, injury, or
 disordered-eating signals, but it isn't a substitute for professional care.

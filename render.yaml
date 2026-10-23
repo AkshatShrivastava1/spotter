@@ -13,6 +13,8 @@ services:
         sync: false
       - key: SPOTTER_CRON_SECRET
         generateValue: true
+      - key: SPOTTER_JWT_SECRET # signs login tokens
+        generateValue: true
       # Free instances sleep when idle, so the GitHub Actions cron drives nudges instead.
       - key: SPOTTER_SCHEDULER_ENABLED
         value: "false"

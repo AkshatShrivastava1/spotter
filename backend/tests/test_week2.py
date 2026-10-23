@@ -3,7 +3,7 @@
 from app.coach.feedback import candidate_meals
 from app.coach.nutrition import heuristic_parse
 from app.models import User
-from tests.conftest import ONBOARD
+from tests.conftest import ONBOARD, signup
 
 
 def test_mutton_curry_is_recognized():
@@ -61,8 +61,7 @@ def test_vegetarian_never_gets_new_meat_dishes():
 
 
 def test_rebuild_plan_changes_and_explains(client):
-    r = client.post("/users", json=ONBOARD).json()
-    h = {"X-User-Id": str(r["user"]["id"])}
+    _uid, h, _ = signup(client)
     first = client.get("/workouts/plan", headers=h).json()
     rebuilt = client.post("/workouts/plan/generate", headers=h).json()
     assert rebuilt["message"].startswith("New plan built")
@@ -71,15 +70,13 @@ def test_rebuild_plan_changes_and_explains(client):
 
 
 def test_rebuild_plan_says_so_when_nothing_can_change(client):
-    r = client.post("/users", json={**ONBOARD, "equipment": "bodyweight", "training_days_per_week": 3}).json()
-    h = {"X-User-Id": str(r["user"]["id"])}
+    _uid, h, _ = signup(client, {**ONBOARD, "equipment": "bodyweight", "training_days_per_week": 3})
     msg = client.post("/workouts/plan/generate", headers=h).json()["message"]
     assert "aren't other options" in msg
 
 
 def test_offline_chat_handles_quick_prompts(client):
-    r = client.post("/users", json=ONBOARD).json()
-    h = {"X-User-Id": str(r["user"]["id"])}
+    _uid, h, _ = signup(client)
     ask = lambda q: client.post("/coach/chat", json={"message": q}, headers=h).json()["reply"]  # noqa: E731
     assert "offline mode" not in ask("how to fix a bad day?")
     assert "Cravings happen" in ask("I'm craving junk food")

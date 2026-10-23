@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Bar, Button, Card, CoachBubble, ErrorText, Label, MacroRow, Screen } from '@/components/ui';
-import { api, getUserId } from '@/lib/api';
+import { api, isLoggedIn } from '@/lib/api';
 import { syncSteps } from '@/lib/device';
 import { colors, type } from '@/lib/theme';
 import { Today } from '@/lib/types';
@@ -18,7 +18,7 @@ export default function TodayScreen() {
   const [checkinDue, setCheckinDue] = useState(false);
 
   const load = useCallback(async () => {
-    if (!getUserId()) return;
+    if (!isLoggedIn()) return;
     try {
       setError(null);
       await syncSteps();
