@@ -45,10 +45,19 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] Existing databases get the new columns automatically on startup
 - [x] 8 new tests (47 total), checked on SQLite and Postgres
 
-## Next (weeks 5+)
+## Week 5 (done): safe to deploy
+- [x] Progress photos are saved in the database instead of the server's disk, so a redeploy can't wipe them
+      (older photos on disk still load)
+- [x] Photo uploads only accept images, max 5 MB
+- [x] With `SPOTTER_ENV=production` the server refuses to start without a strong login secret, the cron secret, and Postgres
+- [x] 12 new tests (59 total), checked on SQLite and Postgres, plus an upgrade test from a Week 4 database
+- [ ] Create the Neon + Render accounts and do the first deploy (needs my accounts)
+
+## Next (weeks 6+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me
 - [ ] Password reset by email, and Sign in with Apple / Google
-- [ ] Move progress photos to object storage so redeploys don't wipe them
+- [ ] Keep the login throttle in the database so it survives restarts
+- [ ] Delete account (App Store requirement)
 - [ ] Better food data: USDA FoodData Central + Open Food Facts barcode scan
 - [ ] "Plan my day" mode: coach proposes breakfast/lunch/dinner in the morning, evening check-in compares plan vs actual
 - [ ] Weekly meal-prep plan + grocery list from home foods

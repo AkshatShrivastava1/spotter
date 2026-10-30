@@ -7,6 +7,8 @@ services:
     plan: free
     healthCheckPath: /health
     envVars:
+      - key: SPOTTER_ENV # turns on the startup checks for secrets and Postgres
+        value: production
       - key: DATABASE_URL
         sync: false # paste your Postgres connection string in the Render dashboard
       - key: SPOTTER_ANTHROPIC_API_KEY

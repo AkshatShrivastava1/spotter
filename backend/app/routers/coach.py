@@ -1,23 +1,23 @@
-import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session, select
 
 from ..coach.chat import chat
 from ..coach.checkin import CHECKIN_QUESTIONS, submit_checkin, weight_trend
 from ..coach.context import day_state, get_daily_log, local_today, streak, week_summary
 from ..coach.nudges import evaluate_user
-from ..config import get_settings
 from ..db import get_session
 from ..deps import current_user
-from ..models import CoachMessage, Notification, ProgressPhoto, User, WeeklyCheckin
+from ..models import CoachMessage, Notification, PhotoData, ProgressPhoto, User, WeeklyCheckin
 from ..push import send_push
 from ..schemas import AmountIn, ChatIn, CheckinIn
 
 router = APIRouter(tags=["coach"])
-UPLOADS = Path(get_settings().uploads_dir)
+
+PHOTO_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"}
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 
 @router.get("/today")
@@ -79,16 +79,19 @@ async def upload_progress_photo(file: UploadFile = File(...), pose: str = Form("
                                 user: User = Depends(current_user), session: Session = Depends(get_session)):
     if user.age < 18:
         raise HTTPException(403, "Progress photos are only available for adult accounts.")
+    media_type = file.content_type or "image/jpeg"
+    if media_type not in PHOTO_TYPES:
+        raise HTTPException(415, "Photos must be JPEG, PNG, WebP or HEIC.")
     data = await file.read()
-    if len(data) > 10 * 1024 * 1024:
-        raise HTTPException(413, "photo too large")
-    ext = {"image/png": ".png", "image/webp": ".webp"}.get(file.content_type or "", ".jpg")
-    folder = UPLOADS / str(user.id)
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{uuid.uuid4().hex}{ext}"
-    path.write_bytes(data)
-    p = ProgressPhoto(user_id=user.id, day=local_today(user), pose=pose, path=str(path))
+    if not data:
+        raise HTTPException(422, "That photo is empty.")
+    if len(data) > MAX_PHOTO_BYTES:
+        raise HTTPException(413, "Photo is too large (max 5 MB).")
+    # Stored in the database, not on disk: cloud hosts like Render wipe the disk on every deploy.
+    p = ProgressPhoto(user_id=user.id, day=local_today(user), pose=pose, media_type=media_type)
     session.add(p)
+    session.flush()
+    session.add(PhotoData(photo_id=p.id, data=data))
     session.commit()
     session.refresh(p)
     return {"id": p.id, "day": p.day, "pose": p.pose}
@@ -106,7 +109,12 @@ def photo_image(photo_id: int, user: User = Depends(current_user), session: Sess
     p = session.get(ProgressPhoto, photo_id)
     if not p or p.user_id != user.id:
         raise HTTPException(404, "not found")
-    return FileResponse(p.path)
+    blob = session.get(PhotoData, p.id)
+    if blob:
+        return Response(blob.data, media_type=p.media_type, headers={"Cache-Control": "private, max-age=86400"})
+    if p.path and Path(p.path).is_file():  # saved to disk before photos moved into the database
+        return FileResponse(p.path)
+    raise HTTPException(404, "This photo is no longer available.")
 
 
 @router.get("/checkin")

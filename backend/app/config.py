@@ -37,14 +37,34 @@ class Settings(BaseSettings):
     # Signs login tokens. Must be set (and kept secret) in production.
     jwt_secret: str = ""
 
-    # Where progress photos are stored. On a cloud host, point this at a persistent disk.
-    uploads_dir: str = "uploads"
+    # "production" turns on startup checks (see production_problems). Anything else = local dev.
+    env: str = "development"
 
     @property
     def db_url(self) -> str:
         # Hosts usually inject a plain DATABASE_URL; SPOTTER_DATABASE_URL still wins if set.
         explicit = os.getenv("SPOTTER_DATABASE_URL")
         return normalize_db_url(explicit or os.getenv("DATABASE_URL") or self.database_url)
+
+    def production_problems(self) -> list[str]:
+        """Settings that would make a live server insecure or silently broken."""
+        problems = []
+        if len(self.jwt_secret) < 32:
+            problems.append("SPOTTER_JWT_SECRET must be set to a random value of at least 32 characters")
+        if self.db_url.startswith("sqlite"):
+            problems.append("DATABASE_URL must point at Postgres (SQLite lives on the server's disk, which gets wiped)")
+        if not self.scheduler_enabled and not self.cron_secret:
+            problems.append("SPOTTER_CRON_SECRET must be set when the scheduler is off, or nudges never run")
+        return problems
+
+
+def check_production(settings: Settings) -> None:
+    """Fail at startup, with a clear message, instead of running a misconfigured live server."""
+    if settings.env != "production":
+        return
+    problems = settings.production_problems()
+    if problems:
+        raise RuntimeError("Refusing to start in production:\n- " + "\n- ".join(problems))
 
 
 @lru_cache

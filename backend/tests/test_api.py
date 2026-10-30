@@ -179,8 +179,7 @@ def test_chat_offline_mode(client, user):
     assert [m["role"] for m in msgs] == ["user", "coach"]
 
 
-def test_progress_photo_roundtrip(client, user, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+def test_progress_photo_roundtrip(client, user):
     png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
     r = client.post("/progress-photos", files={"file": ("f.png", png, "image/png")}, data={"pose": "side"},
                     headers=user["h"]).json()

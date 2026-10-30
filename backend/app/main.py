@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from .config import check_production, get_settings
 from .db import engine, init_db
 from .llm import get_llm
 from .routers import auth, coach, internal, nutrition, training, users
@@ -12,6 +13,7 @@ from .scheduler import start_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    check_production(get_settings())
     init_db()
     sched = start_scheduler()
     yield

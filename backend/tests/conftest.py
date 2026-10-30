@@ -5,7 +5,6 @@ import uuid
 _tmp = tempfile.mkdtemp()
 # Default: throwaway SQLite. Set TEST_DATABASE_URL to run the same suite against Postgres (CI does).
 os.environ["SPOTTER_DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
-os.environ["SPOTTER_UPLOADS_DIR"] = f"{_tmp}/uploads"
 os.environ["SPOTTER_SCHEDULER_ENABLED"] = "false"
 os.environ["SPOTTER_EXPO_PUSH_ENABLED"] = "false"
 os.environ["SPOTTER_LLM_PROVIDER"] = "mock"

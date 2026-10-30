@@ -7,7 +7,7 @@ user's today, not the server's. Timestamps are UTC.
 from datetime import date, datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, LargeBinary
 from sqlmodel import Field, SQLModel
 
 
@@ -123,7 +123,17 @@ class ProgressPhoto(SQLModel, table=True):
     day: date = Field(index=True)
     created_at: datetime = Field(default_factory=utcnow)
     pose: str = "front"  # front | side | back
-    path: str  # file path on server storage (S3 later)
+    media_type: str = "image/jpeg"
+    # Disk path for photos saved before they moved into the database. New photos leave it empty.
+    path: str = ""
+
+
+class PhotoData(SQLModel, table=True):
+    """The image bytes for a progress photo. Kept in their own table so listing photos
+    (or counting them in a check-in) never loads the images themselves."""
+
+    photo_id: int = Field(foreign_key="progressphoto.id", primary_key=True)
+    data: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
 
 
 class WeeklyCheckin(SQLModel, table=True):
