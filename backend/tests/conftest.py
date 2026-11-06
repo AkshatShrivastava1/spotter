@@ -1,6 +1,8 @@
 import os
 import tempfile
 import uuid
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 _tmp = tempfile.mkdtemp()
 # Default: throwaway SQLite. Set TEST_DATABASE_URL to run the same suite against Postgres (CI does).
@@ -55,3 +57,11 @@ def signup(client, body: dict | None = None, *, expect: int = 200):
 def user(client):
     uid, h, data = signup(client)
     return {"id": uid, "h": h, "data": data}
+
+
+def at_local(hour: int, minute: int = 0, tz: str = "America/New_York") -> datetime:
+    """Today at a local wall-clock time, as UTC. Uses the real time zone so tests pass on both
+    sides of a daylight-saving change (a fixed UTC-4 broke every November)."""
+    zone = ZoneInfo(tz)
+    today = datetime.now(zone).date()
+    return datetime(today.year, today.month, today.day, hour, minute, tzinfo=zone).astimezone(timezone.utc)

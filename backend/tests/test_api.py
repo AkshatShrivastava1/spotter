@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlmodel import Session
 
@@ -9,7 +9,7 @@ from app.coach.nutrition import heuristic_parse
 from app.db import engine
 from app.models import Meal, User
 from app.targets import compute_targets
-from tests.conftest import ONBOARD, signup
+from tests.conftest import ONBOARD, at_local, signup
 
 
 def test_targets_reasonable():
@@ -147,27 +147,21 @@ def test_workout_session_progression(client, user):
     assert last["sets"][0]["weight_kg"] == 62.5
 
 
-def _at_local(hour: int, minute: int = 0) -> datetime:
-    # America/New_York in October = UTC-4
-    today = datetime.now(timezone.utc).date()
-    return datetime(today.year, today.month, today.day, hour + 4, minute, tzinfo=timezone.utc)
-
-
 def test_nudges_fire_in_window_once(client, user):
     with Session(engine) as s:
         u = s.get(User, user["id"])
-        first = evaluate_user(s, u, _at_local(7, 40), use_llm=False)
+        first = evaluate_user(s, u, at_local(7, 40), use_llm=False)
         assert [n.kind for n in first] == ["weigh_in"]
-        second = evaluate_user(s, u, _at_local(8, 10), use_llm=False)
+        second = evaluate_user(s, u, at_local(8, 10), use_llm=False)
         assert [n.kind for n in second] == ["morning_brief"]
-        third = evaluate_user(s, u, _at_local(8, 30), use_llm=False)
+        third = evaluate_user(s, u, at_local(8, 30), use_llm=False)
         assert third == []  # nothing else due; no repeats
 
 
 def test_lunch_missing_nudge(client, user):
     with Session(engine) as s:
         u = s.get(User, user["id"])
-        out = evaluate_user(s, u, _at_local(14, 30), use_llm=False)
+        out = evaluate_user(s, u, at_local(14, 30), use_llm=False)
         kinds = [n.kind for n in out]
         assert kinds and kinds[0] in ("lunch_missing", "ghosting")
 

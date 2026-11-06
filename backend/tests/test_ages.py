@@ -1,13 +1,12 @@
 """All-ages behavior: kids/teens never get calorie or weight coaching; seniors get balance-focused plans."""
 
-from datetime import datetime, timezone
 
 from sqlmodel import Session
 
 from app.coach.nudges import evaluate_user
 from app.db import engine
 from app.models import User
-from tests.conftest import ONBOARD, signup
+from tests.conftest import ONBOARD, at_local, signup
 
 KID = {**ONBOARD, "name": "Aarav", "age": 8, "height_cm": 128, "weight_kg": 26, "goal": "lose", "coach_tone": "drill"}
 TEEN = {**ONBOARD, "name": "Maya", "age": 15, "sex": "female", "height_cm": 160, "weight_kg": 52, "goal": "lose"}
@@ -54,8 +53,7 @@ def test_teen_no_weigh_in_nudge_or_photos(client):
     uid, h = _make(client, TEEN)
     with Session(engine) as s:
         u = s.get(User, uid)
-        today = datetime.now(timezone.utc).date()
-        out = evaluate_user(s, u, datetime(today.year, today.month, today.day, 12, 15, tzinfo=timezone.utc), use_llm=False)
+        out = evaluate_user(s, u, at_local(8, 15), use_llm=False)
         assert [n.kind for n in out] == ["morning_brief"]
         assert "kcal" not in out[0].body
     r = client.post("/progress-photos", files={"file": ("f.png", b"x", "image/png")}, headers=h)
