@@ -1,10 +1,12 @@
 name: Nudges
 
-# Wakes the API and runs one pass of the nudge engine every 15 minutes.
+# Wakes the API and runs one pass of the nudge engine every 30 minutes.
+# Not every 15: each wake keeps the free server up for 15 min, and Render's free tier has
+# 750 instance hours a month shared across all services. Every nudge window is 1.5 h or longer.
 # Needs repo secrets SPOTTER_API_URL and SPOTTER_CRON_SECRET; does nothing until they're set.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
