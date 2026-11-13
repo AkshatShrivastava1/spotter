@@ -1,11 +1,22 @@
 name: Nudges
 
-# Manual backup only: Actions > Nudges > Run workflow runs one pass of the nudge engine.
-# The real schedule lives on cron-job.org (see docs/DEPLOY.md). GitHub's own `schedule:` trigger
-# turned out to be best-effort on a quiet repo: set to every 30 min, it ran about every 6 hours.
+# Wakes the API and runs one pass of the nudge engine.
+# Plan: started on time by cron-job.org, which calls GitHub's "run workflow" API every 30 minutes from 6:00 to
+# 23:30 New York time (see docs/DEPLOY.md). Why not GitHub's own `schedule:`? It's best effort: on this
+# quiet repo "every 30 min" ran about every 6 hours. Why not have cron-job.org call the API directly?
+# Its requests never wake the sleeping free Render server; GitHub's runner does.
+# Actions > Nudges > Run workflow also runs one pass by hand.
 # Needs repo secrets SPOTTER_API_URL and SPOTTER_CRON_SECRET; does nothing until they're set.
 on:
+  # Fallback until the cron-job.org trigger is switched on; remove it then.
+  schedule:
+    - cron: "*/30 * * * *"
   workflow_dispatch:
+
+# A slow wake-up must never overlap the next run.
+concurrency:
+  group: nudges
+  cancel-in-progress: false
 
 jobs:
   run:
@@ -20,4 +31,4 @@ jobs:
             echo "Secrets not set yet; skipping."
             exit 0
           fi
-          curl -fsS --retry 3 --retry-delay 20 --max-time 90 -X POST "$API_URL/internal/run-nudges" -H "X-Cron-Secret: $SECRET"
+          curl -fsS --retry 6 --retry-delay 15 --max-time 120 -X POST "$API_URL/internal/run-nudges" -H "X-Cron-Secret: $SECRET"
