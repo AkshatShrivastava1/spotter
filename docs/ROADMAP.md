@@ -35,7 +35,7 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] Dockerfile + Render blueprint; `/health` checks the database
 - [x] Nudges can be driven by an external cron (`/internal/run-nudges` + GitHub Actions) so they fire on free hosts that sleep
 - [x] Deploy guide in `docs/DEPLOY.md`
-- [ ] Create the Neon + Render accounts and do the first deploy (needs my accounts)
+- [x] Create the Neon + Render accounts and do the first deploy (done in week 6)
 
 ## Week 4 (done): real accounts
 - [x] Email + password sign up and log in (scrypt password hashing, signed 30-day tokens)
@@ -51,9 +51,21 @@ The north star: everything a human personal trainer does for you, available at a
 - [x] Photo uploads only accept images, max 5 MB
 - [x] With `SPOTTER_ENV=production` the server refuses to start without a strong login secret, the cron secret, and Postgres
 - [x] 12 new tests (59 total), checked on SQLite and Postgres, plus an upgrade test from a Week 4 database
-- [ ] Create the Neon + Render accounts and do the first deploy (needs my accounts)
+- [x] Create the Neon + Render accounts and do the first deploy (done in week 6)
 
-## Next (weeks 6+)
+## Week 6 (done): first real deploy
+- [x] Neon Postgres + Render API, both in US East 2 (Ohio); live at `spotter-api-tw3e.onrender.com`
+- [x] Production startup checks passed on the first deploy; `/health` reports Postgres
+- [x] Fixed tests that broke when daylight saving time ended
+
+## Weeks 7-8 (done): reminders that fire on time
+- [x] Measured GitHub's `schedule:`: set to every 30 min, it ran about every 6 hours on this quiet repo
+- [x] Tried cron-job.org calling the API directly: on time, but its requests never wake a sleeping free Render server
+- [x] Final setup: cron-job.org calls GitHub's "run workflow" API every 30 min (6:00 to 23:30 New York time),
+      and the GitHub runner wakes the server and runs the nudge pass; tested end to end against a sleeping server
+- [x] Workflow can't overlap itself and retries longer while the server wakes
+
+## Next (weeks 9+)
 - [ ] Run it on my own phone for a week with a real API key and fix whatever annoys me
 - [ ] Password reset by email, and Sign in with Apple / Google
 - [ ] Keep the login throttle in the database so it survives restarts

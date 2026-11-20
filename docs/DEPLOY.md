@@ -27,9 +27,6 @@ outside has to call `/internal/run-nudges`. Two services split the job:
 - **GitHub's runner is the caller.** The workflow curls `/internal/run-nudges` with the cron secret,
   retrying while the server wakes up.
 
-Status: until the cron-job.org job is switched on, the workflow's own 30-minute `schedule:` stays as the
-fallback (remove it once cron-job.org is live).
-
 Why both: GitHub's own `schedule:` is best effort (on this quiet repo "every 30 min" ran about every
 6 hours), and cron-job.org's requests never wake a sleeping free Render server (instant 503, no spin-up),
 while GitHub's runner does. Runs started through the API go right away.
@@ -45,6 +42,8 @@ Setup:
      `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
    - Body `{"ref":"main"}`; GitHub answers 204 when the run is queued
    - Schedule `0,30 6-23 * * *`, time zone America/New_York
+4. Fine-grained tokens expire (90 days at most here). Before it does, generate a new one with the same
+   settings and paste it into the cron-job.org job, or reminders stop with 401 errors.
 
 Server hours: each wake keeps the server up about 15 to 20 minutes, so it's awake roughly 10 hours a day,
 well inside the 750 free instance hours a month shared by every free service in the Render workspace.
